@@ -1,0 +1,13 @@
+﻿node_modules
+client/dist
+server/dist
+.env
+.env.local
+npm-debug.log*
+*.log
+*.err.log
+*.out.log
+.vscode/
+server/data
+tmp_*.json
+*.png
