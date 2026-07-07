@@ -1,6 +1,6 @@
 import { Participant } from './Participant.js';
 
-const ROLES = new Set(['Host', 'Moderator', 'Participant', 'Viewer']);
+const ROLES = new Set(['Host', 'Moderator', 'Participant', 'Viewer', 'Admin']);
 
 export class Room {
   constructor({ id, videoId, hostName, metadata = {} }) {

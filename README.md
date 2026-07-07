@@ -126,3 +126,9 @@ https://github.com/Surenderdubeyofficial/WatchParty
 - The app supports local demos without MongoDB.
 - MongoDB enables persistence for room state and session durability.
 - Replace the live URL above with your public deployment address once available.
+
+## Live Demo
+
+Visit the deployed app here:
+
+- https://watchparty-b1xp.onrender.com/room/OLC-BA3L

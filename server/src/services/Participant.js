@@ -14,7 +14,7 @@ export class Participant {
   }
 
   canControlPlayback() {
-    return this.role === 'Host' || this.role === 'Moderator';
+    return this.role === 'Host' || this.role === 'Moderator' || this.role === 'Admin';
   }
 
   canManageRoom() {
