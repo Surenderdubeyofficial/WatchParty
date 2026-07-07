@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: watch-party
+    env: node
+    plan: free
+    branch: main
+    buildCommand: npm install && npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://your-app.onrender.com
+# Set MONGODB_URI, JWT_SECRET, JWT_REFRESH_SECRET and other secrets in Render's dashboard after creating the service.

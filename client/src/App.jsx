@@ -139,6 +139,9 @@ function WatchPartyPage() {
           enablejsapi: 1,
           modestbranding: 1,
           playsinline: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
           rel: 0,
           origin: window.location.origin
         },
@@ -296,7 +299,11 @@ function WatchPartyPage() {
   }
 
   function controlPlayback(action) {
-    if (!canControl || !playerRef.current) return;
+    if (!playerRef.current) return;
+    if (!canControl) {
+      setStatus('Playback control is reserved for Host and Moderator only.');
+      return;
+    }
     const time = playerRef.current.getCurrentTime();
     socketRef.current?.emit(action, { time }, (response) => {
       if (!response.ok) setStatus(response.message || `Could not ${action} video.`);
@@ -304,7 +311,11 @@ function WatchPartyPage() {
   }
 
   function syncCurrentTime() {
-    if (!canControl || !playerRef.current) return;
+    if (!playerRef.current) return;
+    if (!canControl) {
+      setStatus('Playback control is reserved for Host and Moderator only.');
+      return;
+    }
     socketRef.current?.emit('seek', { time: playerRef.current.getCurrentTime() }, (response) => {
       if (!response.ok) setStatus(response.message || 'Could not sync current time.');
       else setStatus('Synced everyone to the current timestamp.');
@@ -453,7 +464,7 @@ function WatchPartyPage() {
             <div className="room-meta room-meta-card">
               <div>
                 <p className="eyebrow">Room {room.roomId}</p>
-                <h2>{myRole || 'Participant'} controls</h2>
+                <h2>{isHost ? 'Host controls' : myRole === 'Moderator' ? 'Moderator controls' : 'Viewer controls'}</h2>
               </div>
               <div className="room-pills">
                 <span className={canControl ? 'badge allow' : 'badge deny'}>
@@ -461,10 +472,16 @@ function WatchPartyPage() {
                 </span>
                 <span className="badge neutral"><Users size={14} /> {room.participants.length}</span>
               </div>
+              {!canControl && (
+                <div className="watch-only-alert">
+                  Watch-only mode. The host controls playback.
+                </div>
+              )}
             </div>
 
             <div className="player-frame" onMouseUp={emitSeek} onTouchEnd={emitSeek}>
               <div id="youtube-player" />
+              {!canControl && <div className="player-blocker" aria-hidden="true" />}
               {playerNotice && (
                 <div className="player-notice">
                   <strong>{playerNotice}</strong>
@@ -473,14 +490,12 @@ function WatchPartyPage() {
               )}
               <div className="reaction-stack" aria-live="polite">
                 {reactions.map((reaction) => (
-                  <span key={reaction.id}>{REACTION_EMOJI[reaction.label] || reaction.label}</span>
+                  <span key={reaction.id} title={`Reaction by ${reaction.username || 'someone'}`}>
+                    <span className="reaction-emoji">{REACTION_EMOJI[reaction.label] || reaction.label}</span>
+                    <small>{reaction.username || 'Someone'}</small>
+                  </span>
                 ))}
               </div>
-              {!canControl && (
-                <div className="player-lock">
-                  Watch-only mode. The host controls playback.
-                </div>
-              )}
             </div>
 
             <div className="control-strip">

@@ -99,6 +99,22 @@ The Express server exposes REST APIs for room creation and management, and a Soc
 
 This app is ready for deployment on platforms that support Node.js and WebSockets, such as Render, Railway, or Heroku.
 
+### Render
+
+A `render.yaml` file is included for Render service configuration. After creating a service on Render:
+
+1. Set the service to use the `main` branch.
+2. Set the build command to `npm install && npm run install:all && npm run build`.
+3. Set the start command to `npm start`.
+4. Add environment variables in the Render dashboard:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+   - `JWT_REFRESH_SECRET`
+   - `CLIENT_URL` to your Render app URL
+   - any SMTP or Cloudinary secrets you need.
+
+> The placeholder `CLIENT_URL` in `render.yaml` must be replaced with your actual app URL after Render creates the service.
+
 Use the production build and run the backend server from the project root.
 
 ## Repo
