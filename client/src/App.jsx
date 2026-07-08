@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
-import { FiBarChart2, FiBell, FiGlobe, FiMoon, FiSettings, FiSun } from 'react-icons/fi';
+import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { FiMoon, FiSun } from 'react-icons/fi';
 import {
   Copy,
   Crown,
@@ -21,9 +18,7 @@ import {
   Video
 } from 'lucide-react';
 import { io } from 'socket.io-client';
-import { api } from './api/client.js';
 import { setTheme } from './store/slices/uiSlice.js';
-import { setUser } from './store/slices/authSlice.js';
 
 const SERVER_URL = getServerUrl();
 const USER_ID_KEY = 'watch-party-user-id';
@@ -86,6 +81,7 @@ function WatchPartyPage() {
     socket.on('reconnect_failed', () => console.warn('socket reconnect_failed'));
 
     socket.on('sync_state', (state) => {
+      console.info('[watchparty] received sync_state', state?.roomId, 'videoId=', state?.videoId);
       setRoom(state);
       if (state.chat) setChat(state.chat);
       applyRemoteState(state);
@@ -147,6 +143,7 @@ function WatchPartyPage() {
         },
         events: {
           onReady: () => {
+            console.info('[watchparty] YT player ready');
             playerReadyRef.current = true;
             resizePlayer();
             setPlayerNotice('');
@@ -268,6 +265,7 @@ function WatchPartyPage() {
 
   function applyRemoteState(state) {
     const player = playerRef.current;
+    console.info('[watchparty] applyRemoteState', { playerExists: !!player, playerReady: playerReadyRef.current, videoId: state?.videoId, playState: state?.playState, currentTime: state?.currentTime });
     if (!player || !playerReadyRef.current || typeof player.cueVideoById !== 'function') return;
 
     applyingRemoteRef.current = true;
@@ -619,17 +617,6 @@ function App() {
     <Routes>
       <Route path="/" element={<WatchPartyPage />} />
       <Route path="/room/:roomId" element={<WatchPartyPage />} />
-      <Route path="/dashboard" element={<ProductShell><DashboardPage /></ProductShell>} />
-      <Route path="/login" element={<ProductShell compact><AuthPage mode="login" /></ProductShell>} />
-      <Route path="/register" element={<ProductShell compact><AuthPage mode="register" /></ProductShell>} />
-      <Route path="/forgot-password" element={<ProductShell compact><SimpleFormPage title="Forgot password" action="Send reset link" /></ProductShell>} />
-      <Route path="/reset-password" element={<ProductShell compact><SimpleFormPage title="Reset password" action="Reset password" /></ProductShell>} />
-      <Route path="/verify-email" element={<ProductShell compact><SimpleFormPage title="Verify email" action="Verify email" /></ProductShell>} />
-      <Route path="/otp" element={<ProductShell compact><SimpleFormPage title="OTP verification" action="Verify OTP" /></ProductShell>} />
-      <Route path="/welcome" element={<ProductShell><WelcomePage /></ProductShell>} />
-      <Route path="/profile" element={<ProductShell><ProfilePage /></ProductShell>} />
-      <Route path="/settings" element={<ProductShell><SettingsPage /></ProductShell>} />
-      <Route path="/admin" element={<ProductShell><AdminPage /></ProductShell>} />
       <Route path="*" element={<ProductShell compact><ErrorPage /></ProductShell>} />
     </Routes>
   );
@@ -639,11 +626,7 @@ function ProductShell({ children, compact = false }) {
   const dispatch = useDispatch();
   const theme = useSelector((state) => state.ui.theme);
   const nav = [
-    ['/', 'Rooms'],
-    ['/dashboard', 'Dashboard'],
-    ['/profile', 'Profile'],
-    ['/settings', 'Settings'],
-    ['/admin', 'Admin']
+    ['/', 'Rooms']
   ];
 
   return (
@@ -672,7 +655,6 @@ function ProductShell({ children, compact = false }) {
               {theme === 'dark' ? <FiSun /> : <FiMoon />}
               {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
-            <Link className="link-button" to="/login">Login</Link>
           </div>
         </header>
         {children}
@@ -681,170 +663,9 @@ function ProductShell({ children, compact = false }) {
   );
 }
 
-function DashboardPage() {
-  const cards = [
-    ['Total Rooms', '128', <FiGlobe />],
-    ['Active Rooms', '24', <Users size={20} />],
-    ['Watch Time', '840h', <FiBarChart2 />],
-    ['Notifications', '18', <FiBell />]
-  ];
-
-  return (
-    <motion.section className="dashboard-grid" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-      {cards.map(([label, value, icon]) => (
-        <article className="metric-card" key={label}>
-          <span>{icon}</span>
-          <p>{label}</p>
-          <strong>{value}</strong>
-        </article>
-      ))}
-      <article className="wide-card">
-        <div className="section-heading">
-          <h3>Analytics</h3>
-          <span>Live sample</span>
-        </div>
-        <div className="bar-chart" aria-label="Analytics chart">
-          {[42, 64, 58, 82, 76, 94, 68].map((height, index) => (
-            <span key={index} style={{ height: `${height}%` }} />
-          ))}
-        </div>
-      </article>
-      <article className="wide-card">
-        <div className="section-heading">
-          <h3>Quick actions</h3>
-          <span>Rooms</span>
-        </div>
-        <div className="quick-actions">
-          <Link className="link-button" to="/">Create room</Link>
-          <Link className="link-button muted" to="/settings">Room settings</Link>
-          <Link className="link-button muted" to="/profile">Edit profile</Link>
-        </div>
-      </article>
-    </motion.section>
-  );
-}
-
-function AuthPage({ mode }) {
-  const isRegister = mode === 'register';
-  const { register, handleSubmit, formState: { errors } } = useForm();
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
-  async function onSubmit(values) {
-    try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-      const { data } = await api.post(endpoint, values);
-      dispatch(setUser(data.user));
-      toast.success(isRegister ? 'Account created' : 'Welcome back');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Authentication failed');
-    }
-  }
-
-  return (
-    <motion.form className="auth-card" onSubmit={handleSubmit(onSubmit)} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
-      <h2>{isRegister ? 'Create your account' : 'Login to WatchParty'}</h2>
-      {isRegister && (
-        <label>
-          Username
-          <input {...register('username', { required: true })} placeholder="Your display name" />
-          {errors.username && <small>Username is required.</small>}
-        </label>
-      )}
-      <label>
-        Email
-        <input {...register('email', { required: true })} placeholder="you@example.com" />
-        {errors.email && <small>Email is required.</small>}
-      </label>
-      <label>
-        Password
-        <input type="password" {...register('password', { required: true, minLength: 8 })} placeholder="Minimum 8 characters" />
-        {errors.password && <small>Password must be at least 8 characters.</small>}
-      </label>
-      <button type="submit">{isRegister ? 'Register' : 'Login'}</button>
-      <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Already have an account?' : 'Create an account'}</Link>
-      <Link to="/forgot-password">Forgot password?</Link>
-    </motion.form>
-  );
-}
-
-function SimpleFormPage({ title, action }) {
-  return (
-    <form className="auth-card" onSubmit={(event) => { event.preventDefault(); toast.success('Flow ready for email provider setup.'); }}>
-      <h2>{title}</h2>
-      <label>
-        Email or code
-        <input placeholder="Enter details" />
-      </label>
-      <button type="submit">{action}</button>
-    </form>
-  );
-}
-
-function WelcomePage() {
-  return (
-    <section className="wide-card welcome-card">
-      <h2>Welcome to your watch workspace</h2>
-      <p>Create rooms, invite friends, control roles, chat live, and keep everyone synced with Socket.IO.</p>
-      <Link className="link-button" to="/">Start watching</Link>
-    </section>
-  );
-}
-
-function ProfilePage() {
-  return (
-    <section className="settings-grid">
-      <article className="wide-card">
-        <h2>User profile</h2>
-        <label>Avatar URL<input placeholder="https://..." /></label>
-        <label>Username<input placeholder="Display name" /></label>
-        <label>Bio<input placeholder="A short intro" /></label>
-      </article>
-      <article className="wide-card">
-        <h2>Connected devices</h2>
-        <p>Chrome on Windows - active now</p>
-        <p>Mobile browser - last seen today</p>
-      </article>
-    </section>
-  );
-}
-
-function SettingsPage() {
-  const dispatch = useDispatch();
-  const theme = useSelector((state) => state.ui.theme);
-  return (
-    <section className="settings-grid">
-      <article className="wide-card">
-        <h2><FiSettings /> Preferences</h2>
-        <label>Theme<select value={theme} onChange={(event) => dispatch(setTheme(event.target.value))}><option>dark</option><option>light</option><option>system</option></select></label>
-        <label>Language<select><option>English</option><option>Hindi</option></select></label>
-      </article>
-      <article className="wide-card">
-        <h2>Security</h2>
-        <p>JWT cookies, role middleware, rate limiting, Helmet, sanitization, and protected routes are configured on the backend.</p>
-      </article>
-    </section>
-  );
-}
-
-function AdminPage() {
-  return (
-    <section className="dashboard-grid">
-      {['Users', 'Rooms', 'Reports', 'Logs', 'Announcements', 'Analytics'].map((item) => (
-        <article className="metric-card" key={item}>
-          <span><Shield size={20} /></span>
-          <p>Manage</p>
-          <strong>{item}</strong>
-        </article>
-      ))}
-    </section>
-  );
-}
-
 function ErrorPage() {
   return (
-    <section className="auth-card">
+    <section className="error-card">
       <h2>Page not found</h2>
       <p>The route you opened does not exist.</p>
       <Link to="/">Go home</Link>

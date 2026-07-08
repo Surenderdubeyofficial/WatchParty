@@ -1,6 +1,6 @@
 ﻿# YouTube Watch Party
 
-A professional MERN watch party application with real-time YouTube playback synchronization, role-based permissions, chat, reactions, and room management.
+A professional watch party application with real-time YouTube playback synchronization, role-based permissions, chat, reactions, and room management.
 
 ## Overview
 
@@ -21,13 +21,7 @@ The system uses Socket.IO for real-time event delivery, enforced by a backend ro
 - Chat messaging inside the room
 - Live emoji reactions for shared moments
 - Backend permission enforcement for all privileged actions
-- Optional MongoDB persistence for room state
-
-## Tech Stack
-
-- Frontend: React, Vite, JavaScript
 - Backend: Node.js, Express, Socket.IO
-- Database: MongoDB with Mongoose (optional)
 - Video player: YouTube IFrame Player API
 
 ## Local Setup
@@ -40,10 +34,14 @@ The system uses Socket.IO for real-time event delivery, enforced by a backend ro
 
 ### Install dependencies
 
+Install subproject dependencies separately (recommended):
+
 ```powershell
 cd C:\Users\hp\Downloads\youtube-watch-party-mern
-npm install
-npm run install:all
+# Install backend deps
+npm install --prefix server
+# Install frontend deps
+npm install --prefix client
 ```
 
 ### Run locally
@@ -71,12 +69,12 @@ npm start
 
 Create `server/.env` from `.env.example` and configure:
 
-- `MONGODB_URI` – MongoDB connection string (optional)
 - `PORT` – server port (default 5000)
 - `CLIENT_URL` – optional frontend origin for CORS
-- `VITE_SERVER_URL` – optional frontend backend override when running the client separately
 
-If `MONGODB_URI` is not provided, the app still runs locally with in-memory room storage.
+Notes:
+- The app runs locally with in-memory room storage and does not require MongoDB.
+- Authentication and JWT scaffolding were removed; this project uses in-memory participant identities for demo/sync only.
 
 ## Architecture
 
@@ -86,7 +84,7 @@ The React client handles room creation/join flow, participant role display, chat
 
 ### Backend
 
-The Express server exposes REST APIs for room creation and management, and a Socket.IO layer for real-time room events. Room and participant state live in memory and can be persisted to MongoDB when configured.
+The Express server exposes REST APIs for room creation and management, and a Socket.IO layer for real-time room events. Room and participant state live in memory (no database required by default).
 
 ### Core modules
 
@@ -107,11 +105,7 @@ A `render.yaml` file is included for Render service configuration. After creatin
 2. Set the build command to `npm install && npm run install:all && npm run build`.
 3. Set the start command to `npm start`.
 4. Add environment variables in the Render dashboard:
-   - `MONGODB_URI`
-   - `JWT_SECRET`
-   - `JWT_REFRESH_SECRET`
    - `CLIENT_URL` to your Render app URL
-   - any SMTP or Cloudinary secrets you need.
 
 > The placeholder `CLIENT_URL` in `render.yaml` must be replaced with your actual app URL after Render creates the service.
 
@@ -123,8 +117,7 @@ https://github.com/Surenderdubeyofficial/WatchParty
 
 ## Notes
 
-- The app supports local demos without MongoDB.
-- MongoDB enables persistence for room state and session durability.
+- The app supports local demos without a database.
 - Replace the live URL above with your public deployment address once available.
 
 ## Live Demo
